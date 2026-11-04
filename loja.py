@@ -265,11 +265,15 @@ class Pedidos:
             total = total.somar(valor_do_pedido)
         return total
 
+    def _pedido_esta_aberto(self, numero):
+        pedido = self._pedidos_por_numero[numero]
+        return pedido.esta_aberto()
+
     def contar_pedidos_abertos(self):
         abertos = [
             numero
             for numero in self._pedidos_por_numero
-            if self._pedidos_por_numero[numero].esta_aberto()
+            if self._pedido_esta_aberto(numero)
         ]
         return len(abertos)
 
