@@ -1,4 +1,4 @@
-# Passo 5: Colecoes de primeira classe ItensDoPedido e Pedidos.
+# Passo 6: Quebra o Cliente em Pessoa e Endereco (entidades pequenas).
 
 
 class Cpf:
@@ -68,14 +68,24 @@ class Status:
         return self.descrever()
 
 
-class Cliente:
-    def __init__(self, nome, cpf, email, rua, cidade, cep, tipo):
+class Pessoa:
+    def __init__(self, nome, cpf, email):
         self.nome = nome
         self.cpf = cpf
         self.email = email
+
+
+class Endereco:
+    def __init__(self, rua, cidade, cep):
         self.rua = rua
         self.cidade = cidade
         self.cep = cep
+
+
+class Cliente:
+    def __init__(self, pessoa, endereco, tipo):
+        self.pessoa = pessoa
+        self.endereco = endereco
         self.tipo = tipo
 
 
@@ -146,7 +156,7 @@ class Pedidos:
     def imprimir_relatorio(self):
         for numero in self._pedidos_por_numero:
             pedido = self._pedidos_por_numero[numero]
-            print("Pedido", numero, "-", pedido.cliente.nome, "-", pedido.cliente.cidade)
+            print("Pedido", numero, "-", pedido.cliente.pessoa.nome, "-", pedido.cliente.endereco.cidade)
             print("  status:", str(pedido.get_status()))
             pedido.itens.imprimir()
             if not pedido.itens.esta_vazia():
@@ -212,7 +222,9 @@ livro = Produto("Livro", Dinheiro(8950))
 fone = Produto("Fone", Dinheiro(6000))
 
 cliente_ana = Cliente(
-    "Ana Souza", Cpf("12345678901"), Email("ana@mail.com"), "Rua das Flores, 10", "Sorocaba", Cep("18010000"), "V"
+    Pessoa("Ana Souza", Cpf("12345678901"), Email("ana@mail.com")),
+    Endereco("Rua das Flores, 10", "Sorocaba", Cep("18010000")),
+    "V",
 )
 primeiro_pedido_da_ana = pedidos.criar_pedido(1, cliente_ana)
 primeiro_pedido_da_ana.adicionar_item(caderno, 2)
@@ -220,7 +232,9 @@ primeiro_pedido_da_ana.adicionar_item(caneta, 5)
 
 try:
     cliente_bruno = Cliente(
-        "Bruno Lima", Cpf("123"), Email("bruno@mail.com"), "Av. Central, 200", "Votorantim", Cep("18110000"), "N"
+        Pessoa("Bruno Lima", Cpf("123"), Email("bruno@mail.com")),
+        Endereco("Av. Central, 200", "Votorantim", Cep("18110000")),
+        "N",
     )
     pedidos.criar_pedido(2, cliente_bruno)
 except ValueError as erro:
@@ -231,33 +245,43 @@ segundo_pedido_da_ana.adicionar_item(livro, 1)
 
 try:
     cliente_carla = Cliente(
-        "Carla Dias", Cpf("98765432100"), Email("carla.mail.com"), "Rua do Sol, 55", "Sorocaba", Cep("18020000"), "F"
+        Pessoa("Carla Dias", Cpf("98765432100"), Email("carla.mail.com")),
+        Endereco("Rua do Sol, 55", "Sorocaba", Cep("18020000")),
+        "F",
     )
     pedidos.criar_pedido(4, cliente_carla)
 except ValueError as erro:
     print("pedido 4 recusado:", erro)
 
 cliente_diego = Cliente(
-    "Diego Rocha", Cpf("11122233344"), Email("diego@mail.com"), "Rua Nova, 7", "Itu", Cep("13300000"), "N"
+    Pessoa("Diego Rocha", Cpf("11122233344"), Email("diego@mail.com")),
+    Endereco("Rua Nova, 7", "Itu", Cep("13300000")),
+    "N",
 )
 pedido_do_diego = pedidos.criar_pedido(5, cliente_diego)
 
 cliente_eva = Cliente(
-    "Eva Nunes", Cpf("55566677788"), Email("eva@mail.com"), "Alameda Azul, 1", "Itu", Cep("13300001"), "F"
+    Pessoa("Eva Nunes", Cpf("55566677788"), Email("eva@mail.com")),
+    Endereco("Alameda Azul, 1", "Itu", Cep("13300001")),
+    "F",
 )
 pedido_da_eva = pedidos.criar_pedido(6, cliente_eva)
 pedido_da_eva.adicionar_item(fone, 1)
 
 try:
     cliente_fabio = Cliente(
-        "Fabio Costa", Cpf("99988877766"), Email("fabio@mail.com"), "Rua Velha, 3", "Itu", Cep("123"), "N"
+        Pessoa("Fabio Costa", Cpf("99988877766"), Email("fabio@mail.com")),
+        Endereco("Rua Velha, 3", "Itu", Cep("123")),
+        "N",
     )
     pedidos.criar_pedido(7, cliente_fabio)
 except ValueError as erro:
     print("pedido 7 recusado:", erro)
 
 cliente_gil = Cliente(
-    "Gil Alves", Cpf("44455566677"), Email("gil@mail.com"), "Rua do Meio, 9", "Sorocaba", Cep("18030000"), "N"
+    Pessoa("Gil Alves", Cpf("44455566677"), Email("gil@mail.com")),
+    Endereco("Rua do Meio, 9", "Sorocaba", Cep("18030000")),
+    "N",
 )
 pedido_do_gil = pedidos.criar_pedido(8, cliente_gil)
 pedido_do_gil.adicionar_item(fone, 2)
