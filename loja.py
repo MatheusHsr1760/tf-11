@@ -1,6 +1,13 @@
-# Passo 7: Aplica a Lei de Demeter (um ponto por linha) e Diga, nao pergunte (sem getters/setters).
+# Loja refatorada com todas as regras de Object Calisthenics aplicadas.
+
+DESCRICOES_DE_STATUS = {
+    "A": "aberto",
+    "P": "pago",
+    "C": "cancelado",
+}
 
 
+# Representa e valida o numero de CPF de uma pessoa (exatamente 11 caracteres).
 class Cpf:
     def __init__(self, numero):
         if len(numero) != 11:
@@ -8,6 +15,7 @@ class Cpf:
         self._numero = numero
 
 
+# Representa e valida o endereco de email de uma pessoa (nao vazio e contendo arroba).
 class Email:
     def __init__(self, endereco):
         if len(endereco) == 0:
@@ -17,6 +25,7 @@ class Email:
         self._endereco = endereco
 
 
+# Representa e valida o codigo de enderecamento postal (exatamente 8 caracteres).
 class Cep:
     def __init__(self, codigo):
         if len(codigo) != 8:
@@ -24,6 +33,7 @@ class Cep:
         self._codigo = codigo
 
 
+# Representa um valor monetario exato em centavos inteiros e realiza operacoes financeiras.
 class Dinheiro:
     def __init__(self, centavos):
         self._centavos = int(centavos)
@@ -46,6 +56,7 @@ class Dinheiro:
         return f"R$ {reais}.{centavos_restantes:02d}"
 
 
+# Representa o estado atual de um pedido (aberto, pago ou cancelado).
 class Status:
     def __init__(self, codigo):
         self._codigo = codigo
@@ -57,17 +68,31 @@ class Status:
         return self._codigo == "P"
 
     def descrever(self):
-        if self._codigo == "A":
-            return "aberto"
-        elif self._codigo == "P":
-            return "pago"
-        else:
-            return "cancelado"
+        return DESCRICOES_DE_STATUS[self._codigo]
 
     def __str__(self):
         return self.descrever()
 
 
+# Define a regra de desconto para clientes do tipo normal (0% de desconto).
+class TipoNormal:
+    def desconto_sobre(self, valor):
+        return valor.percentual(0)
+
+
+# Define a regra de desconto para clientes do tipo VIP (10% de desconto).
+class TipoVip:
+    def desconto_sobre(self, valor):
+        return valor.percentual(10)
+
+
+# Define a regra de desconto para clientes que sao funcionarios (20% de desconto).
+class TipoFuncionario:
+    def desconto_sobre(self, valor):
+        return valor.percentual(20)
+
+
+# Agrupa os dados de identificacao pessoal (nome, CPF e email).
 class Pessoa:
     def __init__(self, nome, cpf, email):
         self._nome = nome
@@ -78,6 +103,7 @@ class Pessoa:
         return self._nome
 
 
+# Agrupa os dados de localizacao de entrega (rua, cidade e CEP).
 class Endereco:
     def __init__(self, rua, cidade, cep):
         self._rua = rua
@@ -88,6 +114,7 @@ class Endereco:
         return self._cidade
 
 
+# Representa um cliente da loja, associando sua identificacao, endereco e categoria de desconto.
 class Cliente:
     def __init__(self, pessoa, endereco, tipo):
         self._pessoa = pessoa
@@ -99,16 +126,11 @@ class Cliente:
         cidade = self._endereco.localizar_cidade()
         return f"{nome} - {cidade}"
 
-    def calcular_desconto(self, total):
-        if self._tipo == "V":
-            desconto = total.percentual(10)
-        elif self._tipo == "F":
-            desconto = total.percentual(20)
-        else:
-            desconto = Dinheiro(0)
-        return desconto
+    def calcular_desconto(self, valor):
+        return self._tipo.desconto_sobre(valor)
 
 
+# Representa um item do catalogo de produtos com seu nome e preco unitario.
 class Produto:
     def __init__(self, nome, preco):
         self._nome = nome
@@ -122,6 +144,7 @@ class Produto:
         return f"   {quantidade} x {self._nome} = {subtotal}"
 
 
+# Associa um produto a uma quantidade comprada dentro de um pedido.
 class ItemDoPedido:
     def __init__(self, produto, quantidade):
         self._produto = produto
@@ -135,6 +158,7 @@ class ItemDoPedido:
         print(linha)
 
 
+# Colecao de primeira classe responsavel por guardar e totalizar os itens de um pedido.
 class ItensDoPedido:
     def __init__(self):
         self._itens = []
@@ -157,6 +181,7 @@ class ItensDoPedido:
             item.imprimir()
 
 
+# Representa um pedido de compra, controlando seus itens, seu ciclo de vida e seus valores.
 class Pedido:
     def __init__(self, cliente):
         self._cliente = cliente
@@ -168,27 +193,21 @@ class Pedido:
         self._itens.adicionar(item)
 
     def pagar(self):
-        if self._status.esta_aberto():
-            if not self._itens.esta_vazia():
-                self._status = Status("P")
-                return True
-            else:
-                return False
-        else:
+        if not self._status.esta_aberto():
             return False
+        if self._itens.esta_vazia():
+            return False
+        self._status = Status("P")
+        return True
 
     def cancelar(self):
-        if self._status.esta_aberto():
-            self._status = Status("C")
-            return True
-        else:
+        if not self._status.esta_aberto():
             return False
+        self._status = Status("C")
+        return True
 
     def esta_aberto(self):
         return self._status.esta_aberto()
-
-    def esta_pago(self):
-        return self._status.esta_pago()
 
     def calcular_total(self):
         return self._itens.calcular_total()
@@ -202,18 +221,28 @@ class Pedido:
         desconto = self.calcular_desconto()
         return total.subtrair(desconto)
 
+    def valor_arrecadado(self):
+        if not self._status.esta_pago():
+            return Dinheiro(0)
+        return self.calcular_valor_a_pagar()
+
+    def _imprimir_totais(self):
+        if self._itens.esta_vazia():
+            return
+        total = self.calcular_total()
+        desconto = self.calcular_desconto()
+        valor_a_pagar = self.calcular_valor_a_pagar()
+        print(f"  total: {total} | desconto: {desconto} | a pagar: {valor_a_pagar}")
+
     def imprimir_relatorio(self, numero):
         resumo_do_cliente = self._cliente.resumo_para_relatorio()
         print(f"Pedido {numero} - {resumo_do_cliente}")
         print(f"  status: {self._status}")
         self._itens.imprimir()
-        if not self._itens.esta_vazia():
-            total = self.calcular_total()
-            desconto = self.calcular_desconto()
-            valor_a_pagar = self.calcular_valor_a_pagar()
-            print(f"  total: {total} | desconto: {desconto} | a pagar: {valor_a_pagar}")
+        self._imprimir_totais()
 
 
+# Colecao de primeira classe responsavel por registrar os pedidos da loja e consolidar relatorios.
 class Pedidos:
     def __init__(self):
         self._pedidos_por_numero = {}
@@ -232,21 +261,20 @@ class Pedidos:
         total = Dinheiro(0)
         for numero in self._pedidos_por_numero:
             pedido = self._pedidos_por_numero[numero]
-            if pedido.esta_pago():
-                valor_pago = pedido.calcular_valor_a_pagar()
-                total = total.somar(valor_pago)
+            valor_do_pedido = pedido.valor_arrecadado()
+            total = total.somar(valor_do_pedido)
         return total
 
     def contar_pedidos_abertos(self):
-        quantidade_abertos = 0
-        for numero in self._pedidos_por_numero:
-            pedido = self._pedidos_por_numero[numero]
-            if pedido.esta_aberto():
-                quantidade_abertos = quantidade_abertos + 1
-        return quantidade_abertos
+        abertos = [
+            numero
+            for numero in self._pedidos_por_numero
+            if self._pedidos_por_numero[numero].esta_aberto()
+        ]
+        return len(abertos)
 
 
-# --- o roteiro da loja ---
+# --- o roteiro da loja (mantem a saida identica ao original) -------------------
 pedidos = Pedidos()
 
 caderno = Produto("Caderno", Dinheiro(1550))
@@ -257,7 +285,7 @@ fone = Produto("Fone", Dinheiro(6000))
 cliente_ana = Cliente(
     Pessoa("Ana Souza", Cpf("12345678901"), Email("ana@mail.com")),
     Endereco("Rua das Flores, 10", "Sorocaba", Cep("18010000")),
-    "V",
+    TipoVip(),
 )
 primeiro_pedido_da_ana = pedidos.criar_pedido(1, cliente_ana)
 primeiro_pedido_da_ana.adicionar_item(caderno, 2)
@@ -267,7 +295,7 @@ try:
     cliente_bruno = Cliente(
         Pessoa("Bruno Lima", Cpf("123"), Email("bruno@mail.com")),
         Endereco("Av. Central, 200", "Votorantim", Cep("18110000")),
-        "N",
+        TipoNormal(),
     )
     pedidos.criar_pedido(2, cliente_bruno)
 except ValueError as erro:
@@ -280,7 +308,7 @@ try:
     cliente_carla = Cliente(
         Pessoa("Carla Dias", Cpf("98765432100"), Email("carla.mail.com")),
         Endereco("Rua do Sol, 55", "Sorocaba", Cep("18020000")),
-        "F",
+        TipoFuncionario(),
     )
     pedidos.criar_pedido(4, cliente_carla)
 except ValueError as erro:
@@ -289,14 +317,14 @@ except ValueError as erro:
 cliente_diego = Cliente(
     Pessoa("Diego Rocha", Cpf("11122233344"), Email("diego@mail.com")),
     Endereco("Rua Nova, 7", "Itu", Cep("13300000")),
-    "N",
+    TipoNormal(),
 )
 pedido_do_diego = pedidos.criar_pedido(5, cliente_diego)
 
 cliente_eva = Cliente(
     Pessoa("Eva Nunes", Cpf("55566677788"), Email("eva@mail.com")),
     Endereco("Alameda Azul, 1", "Itu", Cep("13300001")),
-    "F",
+    TipoFuncionario(),
 )
 pedido_da_eva = pedidos.criar_pedido(6, cliente_eva)
 pedido_da_eva.adicionar_item(fone, 1)
@@ -305,7 +333,7 @@ try:
     cliente_fabio = Cliente(
         Pessoa("Fabio Costa", Cpf("99988877766"), Email("fabio@mail.com")),
         Endereco("Rua Velha, 3", "Itu", Cep("123")),
-        "N",
+        TipoNormal(),
     )
     pedidos.criar_pedido(7, cliente_fabio)
 except ValueError as erro:
@@ -314,7 +342,7 @@ except ValueError as erro:
 cliente_gil = Cliente(
     Pessoa("Gil Alves", Cpf("44455566677"), Email("gil@mail.com")),
     Endereco("Rua do Meio, 9", "Sorocaba", Cep("18030000")),
-    "N",
+    TipoNormal(),
 )
 pedido_do_gil = pedidos.criar_pedido(8, cliente_gil)
 pedido_do_gil.adicionar_item(fone, 2)
